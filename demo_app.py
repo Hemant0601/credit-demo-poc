@@ -153,6 +153,14 @@ st.markdown("""
         font-size: 13px !important; padding: 8px 12px !important;
         transition: all 0.2s ease !important;
     }
+    section[data-testid="stSidebar"] .stSelectbox [data-baseweb="select"] span,
+    section[data-testid="stSidebar"] .stSelectbox [data-baseweb="select"] div[aria-selected],
+    section[data-testid="stSidebar"] .stSelectbox div[data-baseweb="select"] > div {
+        color: white !important;
+    }
+    section[data-testid="stSidebar"] .stSelectbox svg {
+        fill: white !important;
+    }
     section[data-testid="stSidebar"] .stTextInput input:focus,
     section[data-testid="stSidebar"] .stSelectbox > div > div:focus-within {
         border-color: rgba(37,99,235,0.5) !important;
