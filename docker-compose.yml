@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  credit-copilot:
+    build: .
+    container_name: credit-ai-copilot
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

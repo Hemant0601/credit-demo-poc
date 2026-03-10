@@ -5,7 +5,7 @@ ChatGPT-style interface for credit officers.
 AI has full access to uploaded loan documents and answers with citations.
 
 Requirements:
-    pip install streamlit pymupdf openai python-docx openpyxl pandas
+    pip install streamlit pymupdf openai python-docx openpyxl pandas python-dotenv
 
 Run:
     streamlit run demo_app.py
@@ -15,11 +15,16 @@ import streamlit as st
 import fitz                  # PyMuPDF
 import openai
 import hashlib
+import os
 import re
 import time
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 try:
     import docx as python_docx
@@ -32,6 +37,20 @@ try:
     PANDAS_AVAILABLE = True
 except ImportError:
     PANDAS_AVAILABLE = False
+
+# ─────────────────────────────────────────────────────────────────────────────
+# OPENAI MODELS
+# ─────────────────────────────────────────────────────────────────────────────
+
+OPENAI_MODELS = [
+    "gpt-4o",
+    "gpt-4o-mini",
+    "gpt-4-turbo",
+    "gpt-4",
+    "gpt-3.5-turbo",
+    "o1-preview",
+    "o1-mini",
+]
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PAGE CONFIG
@@ -107,6 +126,20 @@ st.markdown("""
     .welcome-box {
         text-align: center; padding: 50px 20px; color: #888;
     }
+
+    .suggestion-btn button {
+        border: 1px solid #d0d5dd !important;
+        background: white !important;
+        color: #344054 !important;
+        border-radius: 20px !important;
+        font-size: 13px !important;
+        padding: 6px 16px !important;
+    }
+    .suggestion-btn button:hover {
+        background: #f0f4f8 !important;
+        border-color: #2E75B6 !important;
+    }
+
     footer { visibility: hidden; }
     #MainMenu { visibility: hidden; }
 </style>
@@ -122,6 +155,7 @@ for k, v in {
     "officer":     "Credit Officer",
     "prefill":     "",
     "doc_context": "",
+    "model":       "gpt-4o",
 }.items():
     if k not in st.session_state:
         st.session_state[k] = v
@@ -171,12 +205,21 @@ def extract_excel(raw: bytes, name: str) -> dict:
             "hash":hashlib.sha256(raw).hexdigest()[:10]}
 
 
+PARSERS = {
+    ".pdf":  extract_pdf,
+    ".docx": extract_docx,
+    ".doc":  extract_docx,
+    ".xlsx": extract_excel,
+    ".xls":  extract_excel,
+}
+
+
 def parse_file(f) -> dict:
     raw = f.read()
     ext = Path(f.name).suffix.lower()
-    if ext == ".pdf":             return extract_pdf(raw, f.name)
-    if ext in (".docx",".doc"):   return extract_docx(raw, f.name)
-    if ext in (".xlsx",".xls"):   return extract_excel(raw, f.name)
+    parser = PARSERS.get(ext)
+    if parser:
+        return parser(raw, f.name)
     return {"error": f"Unsupported: {ext}"}
 
 
@@ -220,16 +263,16 @@ YOUR RULES (strictly follow every one):
 
 3. CALCULATIONS AND WHAT-IF SCENARIOS
    Use this structure every time:
-   
+
    📥 Inputs:
    • [value 1] — from 📄 [Source: ...]
    • [value 2] — from 📄 [Source: ...]
-   
+
    🔢 Calculation:
    • Step 1: ...
    • Step 2: ...
    • Result: [final number]
-   
+
    📌 Assessment:
    [What this means for the credit decision]
 
@@ -255,7 +298,12 @@ LOAN DOCUMENTS PROVIDED:
 # AI CALL
 # ─────────────────────────────────────────────────────────────────────────────
 
-def call_ai(user_msg: str, api_key: str) -> dict:
+def get_api_key() -> str:
+    """Get API key from environment variable."""
+    return os.environ.get("OPENAI_API_KEY", "")
+
+
+def call_ai(user_msg: str, api_key: str, model: str) -> dict:
     client = openai.OpenAI(api_key=api_key)
 
     system = SYSTEM_PROMPT.replace(
@@ -269,7 +317,7 @@ def call_ai(user_msg: str, api_key: str) -> dict:
 
     t0   = time.time()
     resp = client.chat.completions.create(
-        model="gpt-4o", messages=msgs, temperature=0.1, max_tokens=2500
+        model=model, messages=msgs, temperature=0.1, max_tokens=2500
     )
     elapsed = int((time.time()-t0)*1000)
     answer  = resp.choices[0].message.content
@@ -279,6 +327,7 @@ def call_ai(user_msg: str, api_key: str) -> dict:
         "elapsed_ms":        elapsed,
         "prompt_tokens":     resp.usage.prompt_tokens,
         "completion_tokens": resp.usage.completion_tokens,
+        "model":             model,
         "timestamp":         datetime.utcnow().isoformat(),
         "query_id":          hashlib.sha256(f"{user_msg}{time.time()}".encode()).hexdigest()[:12],
     }
@@ -319,12 +368,26 @@ with st.sidebar:
         <div style="color:#cce4f7;font-size:12px">Corporate Loan Origination · POC</div>
     </div>""", unsafe_allow_html=True)
 
-    # API key
-    st.markdown("#### ⚙️ OpenAI API Key")
-    api_key   = st.text_input("", type="password", placeholder="sk-...",
-                               label_visibility="collapsed")
+    # API key — from .env or manual override
+    env_key = get_api_key()
+    st.markdown("#### ⚙️ Configuration")
+
+    if env_key:
+        st.success("✅ API Key loaded from .env")
+        api_key = env_key
+    else:
+        api_key = st.text_input("OpenAI API Key", type="password",
+                                placeholder="sk-...",
+                                help="Set OPENAI_API_KEY in .env or enter here")
     api_ready = bool(api_key and api_key.startswith("sk-"))
-    st.markdown("✅ API Key set" if api_ready else "⚠️ API key required")
+
+    # Model selection
+    st.session_state.model = st.selectbox(
+        "OpenAI Model",
+        OPENAI_MODELS,
+        index=OPENAI_MODELS.index(st.session_state.model),
+        help="Select the OpenAI model to use for analysis",
+    )
 
     st.divider()
 
@@ -335,25 +398,34 @@ with st.sidebar:
 
     st.divider()
 
-    # Document upload
+    # ── Simplified Document Upload ──────────────────────────────────────────
     st.markdown("#### 📂 Upload Documents")
-    st.caption("PDF · Word · Excel")
-    uploaded = st.file_uploader("", type=["pdf","docx","doc","xlsx","xls"],
-                                  accept_multiple_files=True,
-                                  label_visibility="collapsed")
+    st.caption("Drag & drop or click to upload — PDF, Word, Excel")
+    uploaded = st.file_uploader(
+        "Upload loan documents",
+        type=["pdf","docx","doc","xlsx","xls"],
+        accept_multiple_files=True,
+        label_visibility="collapsed",
+    )
+
+    # Auto-process uploaded files
     if uploaded:
+        new_count = 0
         for f in uploaded:
             if f.name not in st.session_state.documents:
-                with st.spinner(f"Parsing {f.name}..."):
-                    parsed = parse_file(f)
-                    if "error" not in parsed:
-                        st.session_state.documents[f.name]  = parsed
-                        st.session_state.doc_context        = rebuild_context()
-                        st.toast(f"✓ {f.name}", icon="📄")
-                    else:
-                        st.error(f"✗ {parsed['error']}")
+                parsed = parse_file(f)
+                if "error" not in parsed:
+                    st.session_state.documents[f.name] = parsed
+                    new_count += 1
+                else:
+                    st.error(f"✗ {f.name}: {parsed['error']}")
+        if new_count > 0:
+            st.session_state.doc_context = rebuild_context()
+            st.toast(f"✓ {new_count} document(s) loaded", icon="📄")
 
+    # Show loaded documents
     if st.session_state.documents:
+        st.markdown(f"**{len(st.session_state.documents)} document(s) loaded**")
         for name, doc in st.session_state.documents.items():
             icon = {"PDF":"📕","WORD":"📘","EXCEL":"📗"}.get(doc.get("type",""),"📄")
             st.markdown(f"""<div class="doc-card">
@@ -361,7 +433,7 @@ with st.sidebar:
                 <span style="color:#666">{doc.get('type')} · {doc.get('page_count','?')} pages
                 · {doc.get('word_count',0):,} words</span>
             </div>""", unsafe_allow_html=True)
-        if st.button("🗑 Clear All", use_container_width=True):
+        if st.button("🗑 Clear All Documents", use_container_width=True):
             st.session_state.documents   = {}
             st.session_state.doc_context = ""
             st.session_state.messages    = []
@@ -398,13 +470,15 @@ st.markdown(f"""
     <h2>🏦 Credit Intelligence AI Copilot</h2>
     <p>Loan: <strong>{st.session_state.loan_id}</strong> &nbsp;·&nbsp;
        {doc_cnt} document(s) · {doc_words:,} words in context &nbsp;·&nbsp;
+       Model: {st.session_state.model} &nbsp;·&nbsp;
        Officer: {st.session_state.officer}</p>
 </div>""", unsafe_allow_html=True)
 
-# Quick prompts
-st.markdown("**Quick Prompts:**")
-c1,c2,c3 = st.columns(3)
-quick_prompts = [
+# ─────────────────────────────────────────────────────────────────────────────
+# CHAT SUGGESTIONS — contextual suggested questions
+# ─────────────────────────────────────────────────────────────────────────────
+
+SUGGESTIONS = [
     ("📋 Risk Summary",
      "Summarize all key risk factors identified across the uploaded documents. Highlight any red flags."),
     ("💰 Financial Highlights",
@@ -415,18 +489,11 @@ quick_prompts = [
      "What does the credit bureau report show? Summarize credit score, repayment history, existing loans and defaults."),
     ("👤 Guarantor Assessment",
      "Who are the guarantors? What is their net worth and capacity to support the guarantee?"),
-    ("⚠️ What-If: Collateral -10%",
+    ("⚠️ Stress Test: Collateral -10%",
      "What-if scenario: If the collateral value decreases by 10%, calculate the revised LTV. Show the calculation step by step and state if any threshold is breached."),
 ]
-for i,(label,prompt) in enumerate(quick_prompts):
-    col = [c1,c2,c3][i%3]
-    with col:
-        if st.button(label, key=f"q{i}", use_container_width=True):
-            st.session_state.prefill = prompt
 
-st.divider()
-
-# ── Welcome screen ───────────────────────────────────────────────────────────
+# ── Welcome screen with suggestions ─────────────────────────────────────────
 if not st.session_state.messages:
     st.markdown("""
     <div class="welcome-box">
@@ -435,16 +502,19 @@ if not st.session_state.messages:
             Hello! I'm your Credit Intelligence AI Copilot.
         </div>
         <div style="font-size:14px;max-width:540px;margin:0 auto;line-height:1.8;color:#555">
-            Upload the loan documents in the sidebar (PDF, Word, Excel).<br>
-            Then ask me anything about the loan file.<br><br>
-            I will answer <strong>only from the uploaded documents</strong>,
-            cite every claim with its source and page number,
-            and show full step-by-step reasoning for calculations and what-if scenarios.
-        </div>
-        <div style="margin-top:20px;color:#aaa;font-size:13px">
-            Try a Quick Prompt above or type your own question below ↓
+            Upload loan documents in the sidebar (PDF, Word, Excel),
+            then ask me anything about the loan file.<br>
+            I answer <strong>only from the uploaded documents</strong> with full citations.
         </div>
     </div>""", unsafe_allow_html=True)
+
+    # Suggestion chips on welcome screen
+    st.markdown("#### 💡 Suggested Questions")
+    cols = st.columns(3)
+    for i, (label, prompt) in enumerate(SUGGESTIONS):
+        with cols[i % 3]:
+            if st.button(label, key=f"sug_{i}", use_container_width=True):
+                st.session_state.prefill = prompt
 
 # ── Render conversation ───────────────────────────────────────────────────────
 for msg in st.session_state.messages:
@@ -463,6 +533,7 @@ for msg in st.session_state.messages:
         meta    = msg.get("meta", {})
         elapsed = meta.get("elapsed_ms","—")
         tokens  = meta.get("completion_tokens","—")
+        model   = meta.get("model","—")
         qid     = meta.get("query_id","—")
         ts      = meta.get("timestamp","")[:19]
         answer  = format_answer(msg["content"])
@@ -474,7 +545,7 @@ for msg in st.session_state.messages:
                 <div class="bubble-ai">
                     <div style="font-size:11px;color:#888;margin-bottom:8px">
                         <strong style="color:#1F3864">Credit AI Copilot</strong>
-                        &nbsp;·&nbsp; {ts}
+                        &nbsp;·&nbsp; {model} &nbsp;·&nbsp; {ts}
                     </div>
                     {answer}
                 </div>
@@ -485,19 +556,30 @@ for msg in st.session_state.messages:
             </div>
         </div>""", unsafe_allow_html=True)
 
-# ── Input row ────────────────────────────────────────────────────────────────
+# ── Follow-up suggestions after AI response ─────────────────────────────────
+if st.session_state.messages and st.session_state.messages[-1]["role"] == "assistant":
+    st.markdown("#### 💡 Ask next")
+    follow_ups = [
+        ("📋 Risk Summary", SUGGESTIONS[0][1]),
+        ("💰 Financials",   SUGGESTIONS[1][1]),
+        ("📊 Credit Bureau", SUGGESTIONS[3][1]),
+        ("⚠️ Stress Test",  SUGGESTIONS[5][1]),
+    ]
+    cols = st.columns(4)
+    for i, (label, prompt) in enumerate(follow_ups):
+        with cols[i]:
+            if st.button(label, key=f"fu_{i}", use_container_width=True):
+                st.session_state.prefill = prompt
+                st.rerun()
+
+# ── Chat input ──────────────────────────────────────────────────────────────
 st.markdown("---")
 inp_col, btn_col = st.columns([5,1])
 
 with inp_col:
     user_input = st.text_area(
         "msg", value=st.session_state.prefill, height=90,
-        placeholder=(
-            "Ask anything about this loan...  e.g.  "
-            "'What are the risk factors?'  |  "
-            "'Calculate DSCR'  |  "
-            "'If collateral drops 15%, what happens to LTV?'"
-        ),
+        placeholder="Ask anything about this loan... e.g. 'What are the risk factors?' | 'Calculate DSCR' | 'If collateral drops 15%, what happens?'",
         label_visibility="collapsed",
     )
     st.session_state.prefill = ""
@@ -511,27 +593,27 @@ with btn_col:
 
 # Status line
 if not api_ready:
-    st.caption("⚠️ Enter your OpenAI API key in the sidebar.")
+    st.caption("⚠️ Set OPENAI_API_KEY in .env file or enter it in the sidebar.")
 elif not st.session_state.documents:
     st.caption("⚠️ Upload at least one loan document in the sidebar.")
 else:
-    st.caption(f"✅ Ready · {doc_cnt} doc(s) · {doc_words:,} words · "
+    st.caption(f"✅ Ready · {st.session_state.model} · {doc_cnt} doc(s) · {doc_words:,} words · "
                "Shift+Enter for new line · Every answer is cited and audit-logged")
 
 # ── Handle send ──────────────────────────────────────────────────────────────
 if send and user_input.strip():
     st.session_state.messages.append({"role":"user","content":user_input.strip()})
 
-    with st.spinner("🤖 Analyzing documents and preparing cited response..."):
+    with st.spinner(f"🤖 Analyzing with {st.session_state.model}..."):
         try:
-            result = call_ai(user_input.strip(), api_key)
+            result = call_ai(user_input.strip(), api_key, st.session_state.model)
             st.session_state.messages.append({
                 "role":    "assistant",
                 "content": result["answer"],
                 "meta":    result,
             })
         except openai.AuthenticationError:
-            st.error("❌ Invalid API key.")
+            st.error("❌ Invalid API key. Check your .env file or sidebar input.")
         except openai.RateLimitError:
             st.error("❌ Rate limit — wait 30 seconds and retry.")
         except Exception as e:
