@@ -16,7 +16,6 @@ import fitz                  # PyMuPDF
 import openai
 import hashlib
 import os
-import re
 import time
 from datetime import datetime
 from io import BytesIO
@@ -303,58 +302,30 @@ def get_api_key() -> str:
     return os.environ.get("OPENAI_API_KEY", "")
 
 
-def call_ai(user_msg: str, api_key: str, model: str) -> dict:
-    client = openai.OpenAI(api_key=api_key)
-
+def build_ai_messages(user_msg: str) -> list:
+    """Build the message list for the OpenAI API call."""
     system = SYSTEM_PROMPT.replace(
         "{doc_context}", st.session_state.doc_context or "No documents loaded."
     )
-
-    msgs = [{"role":"system","content":system}]
+    msgs = [{"role": "system", "content": system}]
     for m in st.session_state.messages[-20:]:
-        msgs.append({"role":m["role"],"content":m["content"]})
-    msgs.append({"role":"user","content":user_msg})
+        msgs.append({"role": m["role"], "content": m["content"]})
+    msgs.append({"role": "user", "content": user_msg})
+    return msgs
 
-    t0   = time.time()
-    resp = client.chat.completions.create(
-        model=model, messages=msgs, temperature=0.1, max_tokens=2500
+
+def call_ai_stream(user_msg: str, api_key: str, model: str):
+    """Stream the AI response, yielding chunks of text."""
+    client = openai.OpenAI(api_key=api_key)
+    msgs = build_ai_messages(user_msg)
+
+    stream = client.chat.completions.create(
+        model=model, messages=msgs, temperature=0.1, max_tokens=2500,
+        stream=True,
     )
-    elapsed = int((time.time()-t0)*1000)
-    answer  = resp.choices[0].message.content
-
-    return {
-        "answer":            answer,
-        "elapsed_ms":        elapsed,
-        "prompt_tokens":     resp.usage.prompt_tokens,
-        "completion_tokens": resp.usage.completion_tokens,
-        "model":             model,
-        "timestamp":         datetime.utcnow().isoformat(),
-        "query_id":          hashlib.sha256(f"{user_msg}{time.time()}".encode()).hexdigest()[:12],
-    }
-
-# ─────────────────────────────────────────────────────────────────────────────
-# FORMAT AI ANSWER — highlight citations and risk flags
-# ─────────────────────────────────────────────────────────────────────────────
-
-def format_answer(text: str) -> str:
-    html = text.replace("\n", "<br>")
-    # PDF citations
-    html = re.sub(r'📄\s*\[Source:([^\]]+)\]',
-        r'<span class="src-tag-pdf">📄 Source:\1</span>', html)
-    # Excel citations
-    html = re.sub(r'📊\s*\[Source:([^\]]+)\]',
-        r'<span class="src-tag-xls">📊 Source:\1</span>', html)
-    # Word citations
-    html = re.sub(r'📝\s*\[Source:([^\]]+)\]',
-        r'<span class="src-tag-doc">📝 Source:\1</span>', html)
-    # Risk flags
-    html = re.sub(r'🔴 (HIGH RISK[^\n<]*)',
-        r'<span class="risk-high">🔴 \1</span>', html)
-    html = re.sub(r'🟡 (MEDIUM RISK[^\n<]*)',
-        r'<span class="risk-med">🟡 \1</span>', html)
-    html = re.sub(r'🟢 (POSITIVE[^\n<]*)',
-        r'<span class="risk-pos">🟢 \1</span>', html)
-    return html
+    for chunk in stream:
+        if chunk.choices and chunk.choices[0].delta.content:
+            yield chunk.choices[0].delta.content
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SIDEBAR
@@ -509,61 +480,38 @@ if not st.session_state.messages:
     </div>""", unsafe_allow_html=True)
 
     # Suggestion chips on welcome screen
-    st.markdown("#### 💡 Suggested Questions")
+    st.markdown("#### Suggested Questions")
     cols = st.columns(3)
     for i, (label, prompt) in enumerate(SUGGESTIONS):
         with cols[i % 3]:
             if st.button(label, key=f"sug_{i}", use_container_width=True):
                 st.session_state.prefill = prompt
+                st.rerun()
 
-# ── Render conversation ───────────────────────────────────────────────────────
+# ── Render conversation history ──────────────────────────────────────────────
 for msg in st.session_state.messages:
     if msg["role"] == "user":
-        st.markdown(f"""
-        <div class="chat-user">
-            <div class="bubble-user">
-                <div style="font-size:11px;opacity:.8;margin-bottom:5px">
-                    👤 {st.session_state.officer}
-                </div>
-                {msg["content"]}
-            </div>
-        </div>""", unsafe_allow_html=True)
+        with st.chat_message("user", avatar="👤"):
+            st.markdown(msg["content"])
 
     elif msg["role"] == "assistant":
-        meta    = msg.get("meta", {})
-        elapsed = meta.get("elapsed_ms","—")
-        tokens  = meta.get("completion_tokens","—")
-        model   = meta.get("model","—")
-        qid     = meta.get("query_id","—")
-        ts      = meta.get("timestamp","")[:19]
-        answer  = format_answer(msg["content"])
-
-        st.markdown(f"""
-        <div class="chat-ai">
-            <div class="ai-avatar">🤖</div>
-            <div style="flex:1;min-width:0">
-                <div class="bubble-ai">
-                    <div style="font-size:11px;color:#888;margin-bottom:8px">
-                        <strong style="color:#1F3864">Credit AI Copilot</strong>
-                        &nbsp;·&nbsp; {model} &nbsp;·&nbsp; {ts}
-                    </div>
-                    {answer}
-                </div>
-                <div class="msg-meta">
-                    ⏱ {elapsed}ms &nbsp;|&nbsp; 🔤 {tokens} tokens &nbsp;|&nbsp;
-                    <span class="audit-pill">✓ Audit logged · ID: {qid}</span>
-                </div>
-            </div>
-        </div>""", unsafe_allow_html=True)
+        with st.chat_message("assistant", avatar="🤖"):
+            st.markdown(msg["content"])
+            meta = msg.get("meta", {})
+            if meta:
+                elapsed = meta.get("elapsed_ms", "—")
+                model   = meta.get("model", "—")
+                qid     = meta.get("query_id", "—")
+                st.caption(f"Model: {model}  |  {elapsed}ms  |  Audit ID: {qid}")
 
 # ── Follow-up suggestions after AI response ─────────────────────────────────
 if st.session_state.messages and st.session_state.messages[-1]["role"] == "assistant":
-    st.markdown("#### 💡 Ask next")
+    st.markdown("#### Ask next")
     follow_ups = [
-        ("📋 Risk Summary", SUGGESTIONS[0][1]),
-        ("💰 Financials",   SUGGESTIONS[1][1]),
-        ("📊 Credit Bureau", SUGGESTIONS[3][1]),
-        ("⚠️ Stress Test",  SUGGESTIONS[5][1]),
+        ("Risk Summary",  SUGGESTIONS[0][1]),
+        ("Financials",    SUGGESTIONS[1][1]),
+        ("Credit Bureau", SUGGESTIONS[3][1]),
+        ("Stress Test",   SUGGESTIONS[5][1]),
     ]
     cols = st.columns(4)
     for i, (label, prompt) in enumerate(follow_ups):
@@ -572,51 +520,57 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "assis
                 st.session_state.prefill = prompt
                 st.rerun()
 
-# ── Chat input ──────────────────────────────────────────────────────────────
-st.markdown("---")
-inp_col, btn_col = st.columns([5,1])
-
-with inp_col:
-    user_input = st.text_area(
-        "msg", value=st.session_state.prefill, height=90,
-        placeholder="Ask anything about this loan... e.g. 'What are the risk factors?' | 'Calculate DSCR' | 'If collateral drops 15%, what happens?'",
-        label_visibility="collapsed",
-    )
-    st.session_state.prefill = ""
-
-with btn_col:
-    st.markdown("<div style='height:24px'></div>", unsafe_allow_html=True)
-    send = st.button(
-        "Send ➤", type="primary", use_container_width=True,
-        disabled=(not user_input.strip() or not api_ready or not st.session_state.documents),
-    )
-
-# Status line
+# ── Status line ──────────────────────────────────────────────────────────────
 if not api_ready:
-    st.caption("⚠️ Set OPENAI_API_KEY in .env file or enter it in the sidebar.")
+    st.info("Set OPENAI_API_KEY in .env file or enter it in the sidebar.")
 elif not st.session_state.documents:
-    st.caption("⚠️ Upload at least one loan document in the sidebar.")
+    st.info("Upload at least one loan document in the sidebar to get started.")
+
+# ── Chat input ───────────────────────────────────────────────────────────────
+# Use prefill if a suggestion was clicked
+if st.session_state.prefill:
+    prefill_prompt = st.session_state.prefill
+    st.session_state.prefill = ""
+    user_input = prefill_prompt
 else:
-    st.caption(f"✅ Ready · {st.session_state.model} · {doc_cnt} doc(s) · {doc_words:,} words · "
-               "Shift+Enter for new line · Every answer is cited and audit-logged")
+    user_input = st.chat_input(
+        placeholder="Ask anything about this loan...",
+        disabled=(not api_ready or not st.session_state.documents),
+    )
 
 # ── Handle send ──────────────────────────────────────────────────────────────
-if send and user_input.strip():
-    st.session_state.messages.append({"role":"user","content":user_input.strip()})
+if user_input:
+    # Show user message immediately
+    st.session_state.messages.append({"role": "user", "content": user_input.strip()})
+    with st.chat_message("user", avatar="👤"):
+        st.markdown(user_input.strip())
 
-    with st.spinner(f"🤖 Analyzing with {st.session_state.model}..."):
+    # Stream AI response
+    with st.chat_message("assistant", avatar="🤖"):
+        t0 = time.time()
         try:
-            result = call_ai(user_input.strip(), api_key, st.session_state.model)
+            full_response = st.write_stream(
+                call_ai_stream(user_input.strip(), api_key, st.session_state.model)
+            )
+            elapsed = int((time.time() - t0) * 1000)
+            qid = hashlib.sha256(f"{user_input}{time.time()}".encode()).hexdigest()[:12]
+            meta = {
+                "elapsed_ms": elapsed,
+                "model": st.session_state.model,
+                "timestamp": datetime.utcnow().isoformat(),
+                "query_id": qid,
+            }
+            st.caption(f"Model: {st.session_state.model}  |  {elapsed}ms  |  Audit ID: {qid}")
             st.session_state.messages.append({
-                "role":    "assistant",
-                "content": result["answer"],
-                "meta":    result,
+                "role": "assistant",
+                "content": full_response,
+                "meta": meta,
             })
         except openai.AuthenticationError:
-            st.error("❌ Invalid API key. Check your .env file or sidebar input.")
+            st.error("Invalid API key. Check your .env file or sidebar input.")
         except openai.RateLimitError:
-            st.error("❌ Rate limit — wait 30 seconds and retry.")
+            st.error("Rate limit hit — wait 30 seconds and retry.")
         except Exception as e:
-            st.error(f"❌ {e}")
+            st.error(f"Error: {e}")
 
     st.rerun()
