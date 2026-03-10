@@ -5,7 +5,7 @@
 
 ## BEFORE YOU RECORD — CHECKLIST
 
-- [ ] App is running at http://localhost:8501
+- [ ] App is running at http://localhost
 - [ ] OpenAI API key entered in sidebar
 - [ ] 2-3 sample documents uploaded (valuation PDF + any Word/Excel)
 - [ ] Loan ID set to something realistic (e.g. LOAN-2024-CORP-001)

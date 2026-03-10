@@ -11,9 +11,9 @@ COPY demo_app.py .
 COPY data/ data/
 
 # Expose Streamlit port
-EXPOSE 8501
+EXPOSE 80
 
 # Health check
-HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health || exit 1
+HEALTHCHECK CMD curl --fail http://localhost:80/_stcore/health || exit 1
 
-ENTRYPOINT ["streamlit", "run", "demo_app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+ENTRYPOINT ["streamlit", "run", "demo_app.py", "--server.port=80", "--server.address=0.0.0.0"]

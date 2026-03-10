@@ -5,7 +5,7 @@ services:
     build: .
     container_name: credit-ai-copilot
     ports:
-      - "8501:8501"
+      - "80:80"
     env_file:
       - .env
     volumes:
