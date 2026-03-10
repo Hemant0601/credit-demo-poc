@@ -42,13 +42,13 @@ except ImportError:
 # ─────────────────────────────────────────────────────────────────────────────
 
 OPENAI_MODELS = [
+    "gpt-5.4",
+    "gpt-5-mini",
+    "o3",
+    "o3-pro",
+    "o4-mini",
     "gpt-4o",
     "gpt-4o-mini",
-    "gpt-4-turbo",
-    "gpt-4",
-    "gpt-3.5-turbo",
-    "o1-preview",
-    "o1-mini",
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -252,7 +252,7 @@ for k, v in {
     "officer":        "Credit Officer",
     "prefill":        "",
     "doc_context":    "",
-    "model":          "gpt-4o",
+    "model":          "gpt-5.4",
     "data_dir_loaded": False,
 }.items():
     if k not in st.session_state:
@@ -703,6 +703,7 @@ if user_input:
         st.markdown(user_input.strip())
 
     # Stream AI response with visible status
+    ai_error = False
     with st.chat_message("assistant", avatar="🤖"):
         t0 = time.time()
         try:
@@ -740,10 +741,30 @@ if user_input:
                 "meta": meta,
             })
         except openai.AuthenticationError:
-            st.error("Invalid API key. Check your .env file or sidebar input.")
+            ai_error = True
+            st.error("**Authentication Failed** — Invalid API key. Check your `.env` file or sidebar input.")
         except openai.RateLimitError:
-            st.error("Rate limit hit — wait 30 seconds and retry.")
+            ai_error = True
+            st.error("**Rate Limit Exceeded** — Please wait 30 seconds and try again.")
+        except openai.APIConnectionError:
+            ai_error = True
+            st.error("**Connection Failed** — Could not reach OpenAI. Check your internet connection.")
+        except openai.NotFoundError:
+            ai_error = True
+            st.error(f"**Model Not Found** — `{st.session_state.model}` is not available on your API plan. Try a different model.")
+        except openai.APIStatusError as e:
+            ai_error = True
+            st.error(f"**API Error ({e.status_code})** — {e.message}")
         except Exception as e:
-            st.error(f"Error: {e}")
+            ai_error = True
+            st.error(f"**Unexpected Error** — {type(e).__name__}: {e}")
 
-    st.rerun()
+    if ai_error:
+        # Remove the user message that got no AI reply so it doesn't look orphaned
+        if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
+            st.session_state.messages.pop()
+        # Store error in session so it persists across reruns
+        st.session_state["_last_error"] = True
+    else:
+        st.session_state.pop("_last_error", None)
+        st.rerun()
