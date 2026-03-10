@@ -15,6 +15,7 @@ import streamlit as st
 import fitz                  # PyMuPDF
 import openai
 import hashlib
+import json
 import os
 import time
 from datetime import datetime
@@ -131,9 +132,13 @@ st.markdown("""
         background: linear-gradient(180deg, #080e1a 0%, #0f1b33 40%, #152847 100%);
         border-right: 1px solid rgba(255,255,255,0.06);
     }
-    section[data-testid="stSidebar"] * {
+    section[data-testid="stSidebar"] *:not([data-testid="stSidebarCollapseButton"] *) {
         color: #c8d8f0 !important;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    }
+    /* Sidebar collapse arrow: keep default icon rendering */
+    section[data-testid="stSidebar"] [data-testid="stSidebarCollapseButton"] {
+        color: rgba(200,216,240,0.6) !important;
     }
     section[data-testid="stSidebar"] .stMarkdown h4 {
         color: rgba(147,181,255,0.9) !important;
@@ -329,6 +334,16 @@ st.markdown("""
     }
     ::-webkit-scrollbar-thumb:hover { background: rgba(148,163,184,0.5); }
 
+    /* ── Sidebar collapse button fix ──────────────────────────────────── */
+    button[data-testid="stSidebarCollapseButton"],
+    button[kind="headerNoPadding"] {
+        color: #64748b !important;
+    }
+    section[data-testid="stSidebar"] button[data-testid="stSidebarCollapseButton"],
+    section[data-testid="stSidebar"] button[kind="headerNoPadding"] {
+        color: #c8d8f0 !important;
+    }
+
     /* ── Hide Streamlit chrome ─────────────────────────────────────────── */
     footer { visibility: hidden; }
     #MainMenu { visibility: hidden; }
@@ -351,6 +366,12 @@ for k, v in {
 }.items():
     if k not in st.session_state:
         st.session_state[k] = v
+
+# Restore persisted chat history on first load
+if not st.session_state.messages:
+    saved = load_chat_history()
+    if saved:
+        st.session_state.messages = saved
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PARSERS
@@ -416,6 +437,31 @@ def parse_file(f) -> dict:
 
 
 DATA_DIR = Path("data")
+HISTORY_FILE = DATA_DIR / "chat_history.json"
+
+
+def save_chat_history():
+    """Persist chat messages to disk."""
+    DATA_DIR.mkdir(exist_ok=True)
+    HISTORY_FILE.write_text(json.dumps(st.session_state.messages, default=str))
+
+
+def load_chat_history() -> list:
+    """Load chat messages from disk."""
+    if HISTORY_FILE.is_file():
+        try:
+            return json.loads(HISTORY_FILE.read_text())
+        except (json.JSONDecodeError, OSError):
+            pass
+    return []
+
+
+def clear_chat_history():
+    """Clear persisted chat history."""
+    st.session_state.messages = []
+    if HISTORY_FILE.is_file():
+        HISTORY_FILE.unlink()
+
 
 def auto_load_data_dir():
     """Load all supported files from the data/ directory on first run."""
@@ -642,13 +688,23 @@ with st.sidebar:
     # Show loaded documents
     if st.session_state.documents:
         st.markdown(f"**{len(st.session_state.documents)} document(s) loaded**")
-        for name, doc in st.session_state.documents.items():
+        for name, doc in list(st.session_state.documents.items()):
             icon = {"PDF":"📕","WORD":"📘","EXCEL":"📗"}.get(doc.get("type",""),"📄")
-            st.markdown(f"""<div class="doc-card">
-                <div class="doc-name">{icon} {name[:35]}</div>
-                <div class="meta">{doc.get('type')} &middot; {doc.get('page_count','?')} pages
-                &middot; {doc.get('word_count',0):,} words</div>
-            </div>""", unsafe_allow_html=True)
+            col_doc, col_rm = st.columns([5, 1])
+            with col_doc:
+                st.markdown(f"""<div class="doc-card">
+                    <div class="doc-name">{icon} {name[:35]}</div>
+                    <div class="meta">{doc.get('type')} &middot; {doc.get('page_count','?')} pages
+                    &middot; {doc.get('word_count',0):,} words</div>
+                </div>""", unsafe_allow_html=True)
+            with col_rm:
+                if st.button("x", key=f"rm_{name}", help=f"Remove {name}"):
+                    fpath = DATA_DIR / name
+                    if fpath.exists():
+                        fpath.unlink()
+                    del st.session_state.documents[name]
+                    st.session_state.doc_context = rebuild_context()
+                    st.rerun()
         if st.button("Clear All Documents", use_container_width=True):
             # Remove files from data/ directory
             for name in st.session_state.documents:
@@ -657,7 +713,7 @@ with st.sidebar:
                     fpath.unlink()
             st.session_state.documents      = {}
             st.session_state.doc_context    = ""
-            st.session_state.messages       = []
+            clear_chat_history()
             st.session_state.data_dir_loaded = True  # don't re-load cleared files
             st.rerun()
     else:
@@ -669,14 +725,14 @@ with st.sidebar:
     col1, col2 = st.columns(2)
     with col1:
         if st.button("New Chat", use_container_width=True):
-            st.session_state.messages = []
+            clear_chat_history()
             st.rerun()
     with col2:
         q_count = len([m for m in st.session_state.messages if m["role"]=="user"])
         st.metric("Queries", q_count)
 
     st.divider()
-    st.caption("TCS BaNCS REST API | TCS AI Compass | PostgreSQL Audit")
+    st.caption("Powered by Credit Intelligence AI")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # MAIN — CHAT INTERFACE
@@ -861,5 +917,6 @@ if user_input:
         # Store error in session so it persists across reruns
         st.session_state["_last_error"] = True
     else:
+        save_chat_history()
         st.session_state.pop("_last_error", None)
         st.rerun()
