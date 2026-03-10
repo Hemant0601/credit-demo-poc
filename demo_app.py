@@ -367,12 +367,6 @@ for k, v in {
     if k not in st.session_state:
         st.session_state[k] = v
 
-# Restore persisted chat history on first load
-if not st.session_state.messages:
-    saved = load_chat_history()
-    if saved:
-        st.session_state.messages = saved
-
 # ─────────────────────────────────────────────────────────────────────────────
 # PARSERS
 # ─────────────────────────────────────────────────────────────────────────────
@@ -605,6 +599,14 @@ def call_ai_stream(user_msg: str, api_key: str, model: str):
     # If no tokens were yielded, yield a fallback message
     if first_token:
         yield "No response generated. Please try again."
+
+# ─────────────────────────────────────────────────────────────────────────────
+# RESTORE PERSISTED CHAT HISTORY on first load
+# ─────────────────────────────────────────────────────────────────────────────
+if not st.session_state.messages:
+    saved = load_chat_history()
+    if saved:
+        st.session_state.messages = saved
 
 # ─────────────────────────────────────────────────────────────────────────────
 # AUTO-LOAD documents from data/ directory on first run
