@@ -526,17 +526,16 @@ if not api_ready:
 elif not st.session_state.documents:
     st.info("Upload at least one loan document in the sidebar to get started.")
 
-# ── Chat input ───────────────────────────────────────────────────────────────
-# Use prefill if a suggestion was clicked
+# ── Chat input — always render this widget ───────────────────────────────────
+user_input = st.chat_input(
+    placeholder="Ask anything about this loan...",
+    disabled=(not api_ready or not st.session_state.documents),
+)
+
+# If a suggestion button was clicked, use that as input instead
 if st.session_state.prefill:
-    prefill_prompt = st.session_state.prefill
+    user_input = st.session_state.prefill
     st.session_state.prefill = ""
-    user_input = prefill_prompt
-else:
-    user_input = st.chat_input(
-        placeholder="Ask anything about this loan...",
-        disabled=(not api_ready or not st.session_state.documents),
-    )
 
 # ── Handle send ──────────────────────────────────────────────────────────────
 if user_input:
