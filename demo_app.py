@@ -249,8 +249,9 @@ You assist credit officers in analyzing corporate loan applications.
 
 YOUR RULES (strictly follow every one):
 
-1. ANSWER ONLY FROM DOCUMENTS
-   Use only the document context provided. Never fill gaps with general knowledge.
+1. ANSWER ONLY FROM THE UPLOADED DOCUMENTS
+   Use ONLY the document context provided below. Never fill gaps with general knowledge.
+   You must NOT invent, assume, or use any data that is not explicitly present in the uploaded documents.
    If something is not in the documents say: "⚠️ Not available in the current documents."
 
 2. CITE EVERY CLAIM
@@ -304,9 +305,20 @@ def get_api_key() -> str:
 
 def build_ai_messages(user_msg: str) -> list:
     """Build the message list for the OpenAI API call."""
-    system = SYSTEM_PROMPT.replace(
-        "{doc_context}", st.session_state.doc_context or "No documents loaded."
-    )
+    # Always rebuild context from current documents to ensure it's fresh
+    st.session_state.doc_context = rebuild_context()
+    doc_ctx = st.session_state.doc_context or "No documents loaded."
+
+    # List the document names explicitly so the model knows what it has
+    if st.session_state.documents:
+        doc_list = "\n".join(
+            f"  - {name} ({doc.get('type','?')}, {doc.get('word_count',0)} words)"
+            for name, doc in st.session_state.documents.items()
+            if "error" not in doc
+        )
+        doc_ctx = f"You have access to EXACTLY these {len(st.session_state.documents)} document(s):\n{doc_list}\n\nFull document contents below:\n{doc_ctx}"
+
+    system = SYSTEM_PROMPT.replace("{doc_context}", doc_ctx)
     msgs = [{"role": "system", "content": system}]
     for m in st.session_state.messages[-20:]:
         msgs.append({"role": m["role"], "content": m["content"]})
