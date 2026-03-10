@@ -451,7 +451,7 @@ def call_ai_stream(user_msg: str, api_key: str, model: str):
     msgs = build_ai_messages(user_msg)
 
     stream = client.chat.completions.create(
-        model=model, messages=msgs, temperature=0.1, max_tokens=2500,
+        model=model, messages=msgs, temperature=0.1, max_completion_tokens=2500,
         stream=True,
     )
 
