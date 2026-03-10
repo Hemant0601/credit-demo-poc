@@ -62,178 +62,272 @@ st.set_page_config(
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
-# CSS — Modern dark-navy theme
+# CSS — Premium Banking UI Theme
 # ─────────────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
     /* ── Global ────────────────────────────────────────────────────────── */
-    .stApp { background: #f8f9fb; }
+    .stApp {
+        background: linear-gradient(160deg, #f0f4f8 0%, #e8edf5 50%, #f0f4f8 100%);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
 
     /* ── Top banner ────────────────────────────────────────────────────── */
     .top-banner {
-        background: linear-gradient(135deg, #0f1b33 0%, #1a3a6b 50%, #2563eb 100%);
-        padding: 20px 28px; border-radius: 14px; margin-bottom: 20px;
-        box-shadow: 0 4px 20px rgba(15,27,51,0.25);
+        background: linear-gradient(135deg, #0c1526 0%, #162650 40%, #1e3a7a 70%, #2563eb 100%);
+        padding: 28px 36px; border-radius: 20px; margin-bottom: 24px;
+        box-shadow: 0 8px 40px rgba(15,27,51,0.3), 0 2px 8px rgba(37,99,235,0.15);
         position: relative; overflow: hidden;
     }
     .top-banner::before {
-        content: ''; position: absolute; top: -40%; right: -10%;
-        width: 300px; height: 300px; border-radius: 50%;
-        background: rgba(255,255,255,0.04);
+        content: ''; position: absolute; top: -60%; right: -15%;
+        width: 400px; height: 400px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(37,99,235,0.15) 0%, transparent 70%);
+    }
+    .top-banner::after {
+        content: ''; position: absolute; bottom: -30%; left: 10%;
+        width: 200px; height: 200px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(99,179,237,0.08) 0%, transparent 70%);
     }
     .top-banner h2 {
-        color: white; margin: 0; font-size: 22px; font-weight: 700;
-        letter-spacing: -0.3px;
+        color: white; margin: 0; font-size: 24px; font-weight: 800;
+        letter-spacing: -0.5px; position: relative; z-index: 1;
     }
     .top-banner p {
-        color: rgba(200,220,255,0.85); margin: 6px 0 0 0;
-        font-size: 13px; line-height: 1.5;
+        color: rgba(200,220,255,0.7); margin: 4px 0 0 0;
+        font-size: 13px; line-height: 1.5; font-weight: 400;
+        letter-spacing: 0.2px; position: relative; z-index: 1;
     }
 
     /* ── Stat pills row ────────────────────────────────────────────────── */
     .stat-row {
-        display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap;
+        display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap;
+        position: relative; z-index: 1;
     }
     .stat-pill {
-        background: rgba(255,255,255,0.12); backdrop-filter: blur(6px);
-        border: 1px solid rgba(255,255,255,0.15);
-        border-radius: 8px; padding: 6px 14px;
-        color: white; font-size: 12px; font-weight: 500;
-        display: flex; align-items: center; gap: 6px;
+        background: rgba(255,255,255,0.08); backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 10px; padding: 8px 16px;
+        color: rgba(255,255,255,0.85); font-size: 11px; font-weight: 500;
+        display: flex; align-items: center; gap: 8px;
+        letter-spacing: 0.3px; text-transform: uppercase;
+        transition: all 0.25s ease;
     }
-    .stat-pill .val { font-weight: 700; font-size: 14px; }
+    .stat-pill:hover {
+        background: rgba(255,255,255,0.14);
+        border-color: rgba(255,255,255,0.2);
+        transform: translateY(-1px);
+    }
+    .stat-pill .val {
+        font-weight: 700; font-size: 13px; color: white;
+        text-transform: none;
+    }
 
     /* ── Sidebar ───────────────────────────────────────────────────────── */
     section[data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #0f1b33 0%, #162d50 100%);
+        background: linear-gradient(180deg, #080e1a 0%, #0f1b33 40%, #152847 100%);
+        border-right: 1px solid rgba(255,255,255,0.06);
     }
     section[data-testid="stSidebar"] * {
         color: #c8d8f0 !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
     }
     section[data-testid="stSidebar"] .stMarkdown h4 {
-        color: #e2ecff !important;
-        font-size: 13px; text-transform: uppercase;
-        letter-spacing: 1px; margin-top: 8px;
+        color: rgba(147,181,255,0.9) !important;
+        font-size: 10px; text-transform: uppercase;
+        letter-spacing: 1.5px; margin-top: 12px; font-weight: 700;
     }
     section[data-testid="stSidebar"] .stTextInput input,
     section[data-testid="stSidebar"] .stSelectbox > div > div {
+        background: rgba(255,255,255,0.05) !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        color: white !important; border-radius: 10px !important;
+        font-size: 13px !important; padding: 8px 12px !important;
+        transition: all 0.2s ease !important;
+    }
+    section[data-testid="stSidebar"] .stTextInput input:focus,
+    section[data-testid="stSidebar"] .stSelectbox > div > div:focus-within {
+        border-color: rgba(37,99,235,0.5) !important;
         background: rgba(255,255,255,0.08) !important;
-        border: 1px solid rgba(255,255,255,0.15) !important;
-        color: white !important; border-radius: 8px !important;
+        box-shadow: 0 0 0 3px rgba(37,99,235,0.1) !important;
     }
     section[data-testid="stSidebar"] .stDivider {
-        border-color: rgba(255,255,255,0.1) !important;
+        border-color: rgba(255,255,255,0.06) !important;
     }
     section[data-testid="stSidebar"] .stAlert {
-        background: rgba(255,255,255,0.06) !important;
-        border: 1px solid rgba(255,255,255,0.1) !important;
-        color: #a0b8d8 !important;
+        background: rgba(255,255,255,0.04) !important;
+        border: 1px solid rgba(255,255,255,0.08) !important;
+        color: #8aa4c8 !important; border-radius: 10px !important;
     }
 
     /* Sidebar brand */
     .sidebar-brand {
-        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-        border-radius: 12px; padding: 16px 18px; margin-bottom: 18px;
+        background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #3b82f6 100%);
+        border-radius: 16px; padding: 22px 20px; margin-bottom: 24px;
         border: 1px solid rgba(255,255,255,0.1);
+        box-shadow: 0 4px 24px rgba(37,99,235,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+        position: relative; overflow: hidden;
+    }
+    .sidebar-brand::before {
+        content: ''; position: absolute; top: -50%; right: -20%;
+        width: 120px; height: 120px; border-radius: 50%;
+        background: rgba(255,255,255,0.08);
+    }
+    .sidebar-brand .brand-icon {
+        font-size: 28px; margin-bottom: 8px;
     }
     .sidebar-brand .title {
-        color: white !important; font-size: 18px; font-weight: 700;
-        letter-spacing: -0.3px;
+        color: white !important; font-size: 18px; font-weight: 800;
+        letter-spacing: -0.5px; line-height: 1.2;
     }
     .sidebar-brand .subtitle {
-        color: rgba(200,220,255,0.7) !important; font-size: 11px;
-        margin-top: 2px; letter-spacing: 0.5px;
+        color: rgba(200,220,255,0.6) !important; font-size: 10px;
+        margin-top: 4px; letter-spacing: 1.5px; font-weight: 600;
     }
 
     /* Document cards in sidebar */
     .doc-card {
-        background: rgba(255,255,255,0.06); border-radius: 10px;
-        padding: 10px 14px; margin: 6px 0;
-        border: 1px solid rgba(255,255,255,0.08);
-        transition: background 0.2s;
+        background: rgba(255,255,255,0.04); border-radius: 12px;
+        padding: 12px 16px; margin: 8px 0;
+        border: 1px solid rgba(255,255,255,0.06);
+        transition: all 0.25s ease;
     }
-    .doc-card:hover { background: rgba(255,255,255,0.1); }
-    .doc-card strong { font-size: 13px; color: #93b5ff !important; }
-    .doc-card .meta { color: #7a94b8 !important; font-size: 11px; margin-top: 3px; }
+    .doc-card:hover {
+        background: rgba(255,255,255,0.08);
+        border-color: rgba(147,181,255,0.2);
+        transform: translateX(2px);
+    }
+    .doc-card .doc-name {
+        font-size: 13px; color: #93b5ff !important; font-weight: 600;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .doc-card .meta {
+        color: #5a7494 !important; font-size: 11px; margin-top: 4px;
+        padding-left: 26px; font-weight: 400;
+    }
 
     /* ── Welcome screen ────────────────────────────────────────────────── */
     .welcome-box {
-        text-align: center; padding: 60px 20px 40px; color: #888;
+        text-align: center; padding: 50px 20px 40px;
     }
     .welcome-icon {
-        width: 80px; height: 80px; margin: 0 auto 20px;
-        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-        border-radius: 20px; display: flex; align-items: center;
-        justify-content: center; font-size: 36px;
-        box-shadow: 0 8px 30px rgba(37,99,235,0.25);
+        width: 88px; height: 88px; margin: 0 auto 24px;
+        background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #3b82f6 100%);
+        border-radius: 24px; display: flex; align-items: center;
+        justify-content: center; font-size: 40px;
+        box-shadow: 0 12px 40px rgba(37,99,235,0.3), 0 4px 12px rgba(37,99,235,0.2);
+        animation: float 3s ease-in-out infinite;
+    }
+    @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-6px); }
     }
     .welcome-title {
-        font-size: 24px; font-weight: 700; color: #0f1b33;
-        margin: 0 0 10px;
+        font-size: 28px; font-weight: 800; color: #0c1526;
+        margin: 0 0 12px; letter-spacing: -0.5px;
     }
     .welcome-desc {
-        font-size: 15px; max-width: 560px; margin: 0 auto;
-        line-height: 1.8; color: #64748b;
+        font-size: 15px; max-width: 520px; margin: 0 auto;
+        line-height: 1.8; color: #64748b; font-weight: 400;
+    }
+    .welcome-divider {
+        width: 60px; height: 3px; margin: 28px auto;
+        background: linear-gradient(90deg, #2563eb, #60a5fa);
+        border-radius: 3px;
     }
 
     /* ── Suggestion chips ──────────────────────────────────────────────── */
-    .stButton > button {
+    div[data-testid="stMainBlockContainer"] .stButton > button {
         border: 1px solid #e2e8f0 !important;
         background: white !important; color: #334155 !important;
-        border-radius: 10px !important; font-size: 13px !important;
-        font-weight: 500 !important; padding: 8px 16px !important;
-        transition: all 0.2s !important;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
+        border-radius: 12px !important; font-size: 13px !important;
+        font-weight: 600 !important; padding: 12px 20px !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02) !important;
+        font-family: 'Inter', sans-serif !important;
+        letter-spacing: -0.1px !important;
     }
-    .stButton > button:hover {
-        background: #f0f5ff !important;
-        border-color: #2563eb !important;
+    div[data-testid="stMainBlockContainer"] .stButton > button:hover {
+        background: linear-gradient(135deg, #eff6ff, #dbeafe) !important;
+        border-color: #93c5fd !important;
         color: #1d4ed8 !important;
-        box-shadow: 0 2px 8px rgba(37,99,235,0.12) !important;
-        transform: translateY(-1px);
+        box-shadow: 0 4px 16px rgba(37,99,235,0.12), 0 2px 4px rgba(37,99,235,0.08) !important;
+        transform: translateY(-2px);
+    }
+    div[data-testid="stMainBlockContainer"] .stButton > button:active {
+        transform: translateY(0) !important;
     }
 
     /* ── Chat messages ─────────────────────────────────────────────────── */
     .stChatMessage {
         background: white !important;
-        border: 1px solid #e8ecf2 !important;
-        border-radius: 14px !important;
-        padding: 16px 20px !important;
-        margin-bottom: 12px !important;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.03) !important;
+        border: 1px solid rgba(226,232,240,0.8) !important;
+        border-radius: 16px !important;
+        padding: 20px 24px !important;
+        margin-bottom: 14px !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.02), 0 4px 12px rgba(0,0,0,0.02) !important;
+        transition: box-shadow 0.2s ease !important;
     }
-    /* User messages — subtle blue tint */
-    div[data-testid="stChatMessage"]:has(.stMarkdown) {
+    .stChatMessage:hover {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.03) !important;
+    }
+    /* User messages — accent border */
+    div[data-testid="stChatMessage"][data-testid*="user"],
+    div[data-testid="stChatMessage"]:has([data-testid*="user"]) {
         border-left: 3px solid #2563eb !important;
+        background: linear-gradient(135deg, #ffffff 0%, #fafbff 100%) !important;
     }
 
     /* ── Chat input ────────────────────────────────────────────────────── */
     .stChatInput {
-        border-radius: 14px !important;
+        border-radius: 16px !important;
     }
     .stChatInput > div {
         border: 2px solid #e2e8f0 !important;
-        border-radius: 14px !important;
+        border-radius: 16px !important;
         background: white !important;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.04) !important;
-        transition: border-color 0.2s !important;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.02) !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     }
     .stChatInput > div:focus-within {
         border-color: #2563eb !important;
-        box-shadow: 0 2px 16px rgba(37,99,235,0.1) !important;
+        box-shadow: 0 4px 24px rgba(37,99,235,0.12), 0 0 0 4px rgba(37,99,235,0.06) !important;
     }
 
     /* ── Status widget ─────────────────────────────────────────────────── */
     .stStatus {
-        background: #f0f5ff !important;
+        background: linear-gradient(135deg, #eff6ff, #f0f5ff) !important;
         border: 1px solid #bfdbfe !important;
-        border-radius: 10px !important;
+        border-radius: 14px !important;
     }
 
     /* ── Metric widget (queries) ───────────────────────────────────────── */
     div[data-testid="stMetricValue"] {
         color: #93b5ff !important; font-size: 28px !important;
+        font-weight: 800 !important;
     }
+
+    /* ── Section headers ──────────────────────────────────────────────── */
+    .section-label {
+        font-size: 11px; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 1.2px; color: #94a3b8; margin: 20px 0 12px;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .section-label::after {
+        content: ''; flex: 1; height: 1px;
+        background: linear-gradient(90deg, #e2e8f0, transparent);
+    }
+
+    /* ── Scrollbar styling ────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb {
+        background: rgba(148,163,184,0.3); border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(148,163,184,0.5); }
 
     /* ── Hide Streamlit chrome ─────────────────────────────────────────── */
     footer { visibility: hidden; }
@@ -480,6 +574,7 @@ if not st.session_state.data_dir_loaded:
 with st.sidebar:
     st.markdown("""
     <div class="sidebar-brand">
+        <div class="brand-icon">&#x1F3E6;</div>
         <div class="title">Credit AI Copilot</div>
         <div class="subtitle">CORPORATE LOAN ORIGINATION</div>
     </div>""", unsafe_allow_html=True)
@@ -489,7 +584,7 @@ with st.sidebar:
     st.markdown("#### Configuration")
 
     if env_key:
-        st.success("✅ API Key loaded from .env")
+        st.success("API Key loaded from .env")
         api_key = env_key
     else:
         api_key = st.text_input("OpenAI API Key", type="password",
@@ -499,7 +594,7 @@ with st.sidebar:
 
     # Model selection
     st.session_state.model = st.selectbox(
-        "OpenAI Model",
+        "Model",
         OPENAI_MODELS,
         index=OPENAI_MODELS.index(st.session_state.model),
         help="Select the OpenAI model to use for analysis",
@@ -514,9 +609,9 @@ with st.sidebar:
 
     st.divider()
 
-    # ── Simplified Document Upload ──────────────────────────────────────────
+    # ── Document Upload ──────────────────────────────────────────────────────
     st.markdown("#### Documents")
-    st.caption("Drag & drop or click to upload — PDF, Word, Excel")
+    st.caption("PDF, Word, Excel supported")
     uploaded = st.file_uploader(
         "Upload loan documents",
         type=["pdf","docx","doc","xlsx","xls"],
@@ -539,10 +634,10 @@ with st.sidebar:
                     (DATA_DIR / f.name).write_bytes(raw)
                     new_count += 1
                 else:
-                    st.error(f"✗ {f.name}: {parsed['error']}")
+                    st.error(f"Failed: {f.name}: {parsed['error']}")
         if new_count > 0:
             st.session_state.doc_context = rebuild_context()
-            st.toast(f"✓ {new_count} document(s) loaded and saved", icon="📄")
+            st.toast(f"{new_count} document(s) loaded", icon="📄")
 
     # Show loaded documents
     if st.session_state.documents:
@@ -550,11 +645,11 @@ with st.sidebar:
         for name, doc in st.session_state.documents.items():
             icon = {"PDF":"📕","WORD":"📘","EXCEL":"📗"}.get(doc.get("type",""),"📄")
             st.markdown(f"""<div class="doc-card">
-                <strong>{icon} {name[:32]}</strong>
+                <div class="doc-name">{icon} {name[:35]}</div>
                 <div class="meta">{doc.get('type')} &middot; {doc.get('page_count','?')} pages
                 &middot; {doc.get('word_count',0):,} words</div>
             </div>""", unsafe_allow_html=True)
-        if st.button("🗑 Clear All Documents", use_container_width=True):
+        if st.button("Clear All Documents", use_container_width=True):
             # Remove files from data/ directory
             for name in st.session_state.documents:
                 fpath = DATA_DIR / name
@@ -566,14 +661,14 @@ with st.sidebar:
             st.session_state.data_dir_loaded = True  # don't re-load cleared files
             st.rerun()
     else:
-        st.info("No documents loaded")
+        st.info("No documents loaded yet")
 
     st.divider()
 
     # Conversation controls
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("🔄 New Chat", use_container_width=True):
+        if st.button("New Chat", use_container_width=True):
             st.session_state.messages = []
             st.rerun()
     with col2:
@@ -581,8 +676,7 @@ with st.sidebar:
         st.metric("Queries", q_count)
 
     st.divider()
-    st.caption("Production: integrates with TCS BaNCS via REST API · "
-               "On-prem LLM via TCS AI Compass · All queries audit-logged to PostgreSQL")
+    st.caption("TCS BaNCS REST API | TCS AI Compass | PostgreSQL Audit")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # MAIN — CHAT INTERFACE
@@ -596,12 +690,12 @@ q_count = len([m for m in st.session_state.messages if m["role"] == "user"])
 st.markdown(f"""
 <div class="top-banner">
     <h2>Credit Intelligence AI Copilot</h2>
-    <p>Intelligent document analysis for credit decisions</p>
+    <p>Intelligent document analysis for corporate credit decisions</p>
     <div class="stat-row">
         <div class="stat-pill">Loan <span class="val">{st.session_state.loan_id}</span></div>
-        <div class="stat-pill">Docs <span class="val">{doc_cnt}</span></div>
-        <div class="stat-pill">Words <span class="val">{doc_words:,}</span></div>
-        <div class="stat-pill">Model <span class="val">{st.session_state.model}</span></div>
+        <div class="stat-pill">Documents <span class="val">{doc_cnt}</span></div>
+        <div class="stat-pill">Corpus <span class="val">{doc_words:,} words</span></div>
+        <div class="stat-pill">Engine <span class="val">{st.session_state.model}</span></div>
         <div class="stat-pill">Queries <span class="val">{q_count}</span></div>
     </div>
 </div>""", unsafe_allow_html=True)
@@ -611,17 +705,17 @@ st.markdown(f"""
 # ─────────────────────────────────────────────────────────────────────────────
 
 SUGGESTIONS = [
-    ("📋 Risk Summary",
+    ("Risk Summary",
      "Summarize all key risk factors identified across the uploaded documents. Highlight any red flags."),
-    ("💰 Financial Highlights",
+    ("Financial Highlights",
      "What are the key financial highlights? Include revenue, profit, net worth, debt metrics for all available years."),
-    ("🏠 Collateral Analysis",
+    ("Collateral Analysis",
      "Analyze the collateral for this loan. What is the value, LTV ratio, and any concerns?"),
-    ("📊 Credit Bureau",
+    ("Credit Bureau Report",
      "What does the credit bureau report show? Summarize credit score, repayment history, existing loans and defaults."),
-    ("👤 Guarantor Assessment",
+    ("Guarantor Assessment",
      "Who are the guarantors? What is their net worth and capacity to support the guarantee?"),
-    ("⚠️ Stress Test: Collateral -10%",
+    ("Stress Test: Collateral -10%",
      "What-if scenario: If the collateral value decreases by 10%, calculate the revised LTV. Show the calculation step by step and state if any threshold is breached."),
 ]
 
@@ -632,13 +726,14 @@ if not st.session_state.messages:
         <div class="welcome-icon">&#x1F3E6;</div>
         <div class="welcome-title">Credit Intelligence AI Copilot</div>
         <div class="welcome-desc">
-            Upload loan documents in the sidebar, then ask me anything about the loan file.
+            Upload loan documents in the sidebar, then ask anything about the loan file.
             I answer <strong>only from uploaded documents</strong> with full citations and risk analysis.
         </div>
+        <div class="welcome-divider"></div>
     </div>""", unsafe_allow_html=True)
 
     # Suggestion chips on welcome screen
-    st.markdown("#### Suggested Questions")
+    st.markdown('<div class="section-label">Suggested Questions</div>', unsafe_allow_html=True)
     cols = st.columns(3)
     for i, (label, prompt) in enumerate(SUGGESTIONS):
         with cols[i % 3]:
@@ -664,7 +759,7 @@ for msg in st.session_state.messages:
 
 # ── Follow-up suggestions after AI response ─────────────────────────────────
 if st.session_state.messages and st.session_state.messages[-1]["role"] == "assistant":
-    st.markdown("#### Ask next")
+    st.markdown('<div class="section-label">Continue Analysis</div>', unsafe_allow_html=True)
     follow_ups = [
         ("Risk Summary",  SUGGESTIONS[0][1]),
         ("Financials",    SUGGESTIONS[1][1]),
