@@ -62,85 +62,183 @@ st.set_page_config(
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
-# CSS
+# CSS — Modern dark-navy theme
 # ─────────────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-    .stApp { background: #f0f4f8; }
+    /* ── Global ────────────────────────────────────────────────────────── */
+    .stApp { background: #f8f9fb; }
 
+    /* ── Top banner ────────────────────────────────────────────────────── */
     .top-banner {
-        background: linear-gradient(135deg, #1F3864 0%, #2E75B6 100%);
-        padding: 14px 24px; border-radius: 10px; margin-bottom: 16px;
+        background: linear-gradient(135deg, #0f1b33 0%, #1a3a6b 50%, #2563eb 100%);
+        padding: 20px 28px; border-radius: 14px; margin-bottom: 20px;
+        box-shadow: 0 4px 20px rgba(15,27,51,0.25);
+        position: relative; overflow: hidden;
     }
-    .top-banner h2 { color: white; margin: 0; font-size: 20px; }
-    .top-banner p  { color: #cce4f7; margin: 2px 0 0 0; font-size: 13px; }
+    .top-banner::before {
+        content: ''; position: absolute; top: -40%; right: -10%;
+        width: 300px; height: 300px; border-radius: 50%;
+        background: rgba(255,255,255,0.04);
+    }
+    .top-banner h2 {
+        color: white; margin: 0; font-size: 22px; font-weight: 700;
+        letter-spacing: -0.3px;
+    }
+    .top-banner p {
+        color: rgba(200,220,255,0.85); margin: 6px 0 0 0;
+        font-size: 13px; line-height: 1.5;
+    }
 
-    .chat-user {
-        display: flex; justify-content: flex-end; margin: 12px 0;
+    /* ── Stat pills row ────────────────────────────────────────────────── */
+    .stat-row {
+        display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap;
     }
-    .bubble-user {
-        background: #2E75B6; color: white;
-        padding: 12px 16px; border-radius: 18px 18px 4px 18px;
-        max-width: 72%; font-size: 14px; line-height: 1.6;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    .stat-pill {
+        background: rgba(255,255,255,0.12); backdrop-filter: blur(6px);
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 8px; padding: 6px 14px;
+        color: white; font-size: 12px; font-weight: 500;
+        display: flex; align-items: center; gap: 6px;
+    }
+    .stat-pill .val { font-weight: 700; font-size: 14px; }
+
+    /* ── Sidebar ───────────────────────────────────────────────────────── */
+    section[data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #0f1b33 0%, #162d50 100%);
+    }
+    section[data-testid="stSidebar"] * {
+        color: #c8d8f0 !important;
+    }
+    section[data-testid="stSidebar"] .stMarkdown h4 {
+        color: #e2ecff !important;
+        font-size: 13px; text-transform: uppercase;
+        letter-spacing: 1px; margin-top: 8px;
+    }
+    section[data-testid="stSidebar"] .stTextInput input,
+    section[data-testid="stSidebar"] .stSelectbox > div > div {
+        background: rgba(255,255,255,0.08) !important;
+        border: 1px solid rgba(255,255,255,0.15) !important;
+        color: white !important; border-radius: 8px !important;
+    }
+    section[data-testid="stSidebar"] .stDivider {
+        border-color: rgba(255,255,255,0.1) !important;
+    }
+    section[data-testid="stSidebar"] .stAlert {
+        background: rgba(255,255,255,0.06) !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        color: #a0b8d8 !important;
     }
 
-    .chat-ai {
-        display: flex; justify-content: flex-start;
-        margin: 12px 0; align-items: flex-start; gap: 10px;
+    /* Sidebar brand */
+    .sidebar-brand {
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        border-radius: 12px; padding: 16px 18px; margin-bottom: 18px;
+        border: 1px solid rgba(255,255,255,0.1);
     }
-    .ai-avatar {
-        background: #1F3864; color: white;
-        width: 36px; height: 36px; border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 16px; flex-shrink: 0; margin-top: 4px;
+    .sidebar-brand .title {
+        color: white !important; font-size: 18px; font-weight: 700;
+        letter-spacing: -0.3px;
     }
-    .bubble-ai {
-        background: white; color: #1a1a2e;
-        padding: 14px 18px; border-radius: 4px 18px 18px 18px;
-        max-width: 82%; font-size: 14px; line-height: 1.8;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        border-left: 3px solid #2E75B6;
+    .sidebar-brand .subtitle {
+        color: rgba(200,220,255,0.7) !important; font-size: 11px;
+        margin-top: 2px; letter-spacing: 0.5px;
     }
-    .msg-meta {
-        margin-top: 5px; font-size: 11px; color: #aaa; padding-left: 4px;
-    }
-    .audit-pill {
-        display: inline-block; background: #e8f5e9; color: #2e7d32;
-        border-radius: 12px; padding: 1px 8px; font-size: 11px;
-    }
-    .src-tag-pdf  { background:#fff3cd; color:#856404; border-radius:4px; padding:1px 6px; font-size:12px; white-space:nowrap; }
-    .src-tag-xls  { background:#e8f5e9; color:#2e7d32; border-radius:4px; padding:1px 6px; font-size:12px; white-space:nowrap; }
-    .src-tag-doc  { background:#e3f2fd; color:#0d47a1; border-radius:4px; padding:1px 6px; font-size:12px; white-space:nowrap; }
-    .risk-high    { background:#fde8e8; color:#c62828; padding:2px 8px; border-radius:4px; font-weight:600; }
-    .risk-med     { background:#fff8e1; color:#f57f17; padding:2px 8px; border-radius:4px; font-weight:600; }
-    .risk-pos     { background:#e8f5e9; color:#2e7d32; padding:2px 8px; border-radius:4px; font-weight:600; }
 
+    /* Document cards in sidebar */
     .doc-card {
-        background: white; border-radius: 8px; padding: 8px 12px;
-        margin: 5px 0; border-left: 3px solid #2E75B6; font-size: 12px;
+        background: rgba(255,255,255,0.06); border-radius: 10px;
+        padding: 10px 14px; margin: 6px 0;
+        border: 1px solid rgba(255,255,255,0.08);
+        transition: background 0.2s;
     }
-    .doc-card strong { font-size: 13px; color: #1F3864; }
+    .doc-card:hover { background: rgba(255,255,255,0.1); }
+    .doc-card strong { font-size: 13px; color: #93b5ff !important; }
+    .doc-card .meta { color: #7a94b8 !important; font-size: 11px; margin-top: 3px; }
 
+    /* ── Welcome screen ────────────────────────────────────────────────── */
     .welcome-box {
-        text-align: center; padding: 50px 20px; color: #888;
+        text-align: center; padding: 60px 20px 40px; color: #888;
+    }
+    .welcome-icon {
+        width: 80px; height: 80px; margin: 0 auto 20px;
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        border-radius: 20px; display: flex; align-items: center;
+        justify-content: center; font-size: 36px;
+        box-shadow: 0 8px 30px rgba(37,99,235,0.25);
+    }
+    .welcome-title {
+        font-size: 24px; font-weight: 700; color: #0f1b33;
+        margin: 0 0 10px;
+    }
+    .welcome-desc {
+        font-size: 15px; max-width: 560px; margin: 0 auto;
+        line-height: 1.8; color: #64748b;
     }
 
-    .suggestion-btn button {
-        border: 1px solid #d0d5dd !important;
+    /* ── Suggestion chips ──────────────────────────────────────────────── */
+    .stButton > button {
+        border: 1px solid #e2e8f0 !important;
+        background: white !important; color: #334155 !important;
+        border-radius: 10px !important; font-size: 13px !important;
+        font-weight: 500 !important; padding: 8px 16px !important;
+        transition: all 0.2s !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
+    }
+    .stButton > button:hover {
+        background: #f0f5ff !important;
+        border-color: #2563eb !important;
+        color: #1d4ed8 !important;
+        box-shadow: 0 2px 8px rgba(37,99,235,0.12) !important;
+        transform: translateY(-1px);
+    }
+
+    /* ── Chat messages ─────────────────────────────────────────────────── */
+    .stChatMessage {
         background: white !important;
-        color: #344054 !important;
-        border-radius: 20px !important;
-        font-size: 13px !important;
-        padding: 6px 16px !important;
+        border: 1px solid #e8ecf2 !important;
+        border-radius: 14px !important;
+        padding: 16px 20px !important;
+        margin-bottom: 12px !important;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.03) !important;
     }
-    .suggestion-btn button:hover {
-        background: #f0f4f8 !important;
-        border-color: #2E75B6 !important;
+    /* User messages — subtle blue tint */
+    div[data-testid="stChatMessage"]:has(.stMarkdown) {
+        border-left: 3px solid #2563eb !important;
     }
 
+    /* ── Chat input ────────────────────────────────────────────────────── */
+    .stChatInput {
+        border-radius: 14px !important;
+    }
+    .stChatInput > div {
+        border: 2px solid #e2e8f0 !important;
+        border-radius: 14px !important;
+        background: white !important;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.04) !important;
+        transition: border-color 0.2s !important;
+    }
+    .stChatInput > div:focus-within {
+        border-color: #2563eb !important;
+        box-shadow: 0 2px 16px rgba(37,99,235,0.1) !important;
+    }
+
+    /* ── Status widget ─────────────────────────────────────────────────── */
+    .stStatus {
+        background: #f0f5ff !important;
+        border: 1px solid #bfdbfe !important;
+        border-radius: 10px !important;
+    }
+
+    /* ── Metric widget (queries) ───────────────────────────────────────── */
+    div[data-testid="stMetricValue"] {
+        color: #93b5ff !important; font-size: 28px !important;
+    }
+
+    /* ── Hide Streamlit chrome ─────────────────────────────────────────── */
     footer { visibility: hidden; }
     #MainMenu { visibility: hidden; }
+    header[data-testid="stHeader"] { background: transparent; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -381,15 +479,14 @@ if not st.session_state.data_dir_loaded:
 
 with st.sidebar:
     st.markdown("""
-    <div style="background:linear-gradient(135deg,#1F3864,#2E75B6);
-                border-radius:10px;padding:14px 16px;margin-bottom:14px">
-        <div style="color:white;font-size:17px;font-weight:700">🏦 Credit AI Copilot</div>
-        <div style="color:#cce4f7;font-size:12px">Corporate Loan Origination · POC</div>
+    <div class="sidebar-brand">
+        <div class="title">Credit AI Copilot</div>
+        <div class="subtitle">CORPORATE LOAN ORIGINATION</div>
     </div>""", unsafe_allow_html=True)
 
     # API key — from .env or manual override
     env_key = get_api_key()
-    st.markdown("#### ⚙️ Configuration")
+    st.markdown("#### Configuration")
 
     if env_key:
         st.success("✅ API Key loaded from .env")
@@ -411,14 +508,14 @@ with st.sidebar:
     st.divider()
 
     # Loan context
-    st.markdown("#### 📋 Loan Context")
+    st.markdown("#### Loan Context")
     st.session_state.loan_id = st.text_input("Loan ID",      value=st.session_state.loan_id)
     st.session_state.officer = st.text_input("Credit Officer", value=st.session_state.officer)
 
     st.divider()
 
     # ── Simplified Document Upload ──────────────────────────────────────────
-    st.markdown("#### 📂 Upload Documents")
+    st.markdown("#### Documents")
     st.caption("Drag & drop or click to upload — PDF, Word, Excel")
     uploaded = st.file_uploader(
         "Upload loan documents",
@@ -453,9 +550,9 @@ with st.sidebar:
         for name, doc in st.session_state.documents.items():
             icon = {"PDF":"📕","WORD":"📘","EXCEL":"📗"}.get(doc.get("type",""),"📄")
             st.markdown(f"""<div class="doc-card">
-                <strong>{icon} {name[:28]}</strong><br>
-                <span style="color:#666">{doc.get('type')} · {doc.get('page_count','?')} pages
-                · {doc.get('word_count',0):,} words</span>
+                <strong>{icon} {name[:32]}</strong>
+                <div class="meta">{doc.get('type')} &middot; {doc.get('page_count','?')} pages
+                &middot; {doc.get('word_count',0):,} words</div>
             </div>""", unsafe_allow_html=True)
         if st.button("🗑 Clear All Documents", use_container_width=True):
             # Remove files from data/ directory
@@ -494,14 +591,19 @@ with st.sidebar:
 doc_cnt   = len(st.session_state.documents)
 doc_words = sum(d.get("word_count",0) for d in st.session_state.documents.values())
 
-# Top banner
+# Top banner with stat pills
+q_count = len([m for m in st.session_state.messages if m["role"] == "user"])
 st.markdown(f"""
 <div class="top-banner">
-    <h2>🏦 Credit Intelligence AI Copilot</h2>
-    <p>Loan: <strong>{st.session_state.loan_id}</strong> &nbsp;·&nbsp;
-       {doc_cnt} document(s) · {doc_words:,} words in context &nbsp;·&nbsp;
-       Model: {st.session_state.model} &nbsp;·&nbsp;
-       Officer: {st.session_state.officer}</p>
+    <h2>Credit Intelligence AI Copilot</h2>
+    <p>Intelligent document analysis for credit decisions</p>
+    <div class="stat-row">
+        <div class="stat-pill">Loan <span class="val">{st.session_state.loan_id}</span></div>
+        <div class="stat-pill">Docs <span class="val">{doc_cnt}</span></div>
+        <div class="stat-pill">Words <span class="val">{doc_words:,}</span></div>
+        <div class="stat-pill">Model <span class="val">{st.session_state.model}</span></div>
+        <div class="stat-pill">Queries <span class="val">{q_count}</span></div>
+    </div>
 </div>""", unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -527,14 +629,11 @@ SUGGESTIONS = [
 if not st.session_state.messages:
     st.markdown("""
     <div class="welcome-box">
-        <div style="font-size:52px">🤖</div>
-        <div style="font-size:18px;font-weight:600;color:#1F3864;margin:12px 0">
-            Hello! I'm your Credit Intelligence AI Copilot.
-        </div>
-        <div style="font-size:14px;max-width:540px;margin:0 auto;line-height:1.8;color:#555">
-            Upload loan documents in the sidebar (PDF, Word, Excel),
-            then ask me anything about the loan file.<br>
-            I answer <strong>only from the uploaded documents</strong> with full citations.
+        <div class="welcome-icon">&#x1F3E6;</div>
+        <div class="welcome-title">Credit Intelligence AI Copilot</div>
+        <div class="welcome-desc">
+            Upload loan documents in the sidebar, then ask me anything about the loan file.
+            I answer <strong>only from uploaded documents</strong> with full citations and risk analysis.
         </div>
     </div>""", unsafe_allow_html=True)
 
