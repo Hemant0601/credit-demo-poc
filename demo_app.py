@@ -148,13 +148,14 @@ st.markdown("""
 # SESSION STATE
 # ─────────────────────────────────────────────────────────────────────────────
 for k, v in {
-    "messages":    [],
-    "documents":   {},
-    "loan_id":     "LOAN-2024-CORP-001",
-    "officer":     "Credit Officer",
-    "prefill":     "",
-    "doc_context": "",
-    "model":       "gpt-4o",
+    "messages":       [],
+    "documents":      {},
+    "loan_id":        "LOAN-2024-CORP-001",
+    "officer":        "Credit Officer",
+    "prefill":        "",
+    "doc_context":    "",
+    "model":          "gpt-4o",
+    "data_dir_loaded": False,
 }.items():
     if k not in st.session_state:
         st.session_state[k] = v
@@ -220,6 +221,26 @@ def parse_file(f) -> dict:
     if parser:
         return parser(raw, f.name)
     return {"error": f"Unsupported: {ext}"}
+
+
+DATA_DIR = Path("data")
+
+def auto_load_data_dir():
+    """Load all supported files from the data/ directory on first run."""
+    if not DATA_DIR.is_dir():
+        return
+    for filepath in sorted(DATA_DIR.iterdir()):
+        ext = filepath.suffix.lower()
+        if ext in PARSERS and filepath.name not in st.session_state.documents:
+            try:
+                raw = filepath.read_bytes()
+                parsed = PARSERS[ext](raw, filepath.name)
+                if "error" not in parsed:
+                    st.session_state.documents[filepath.name] = parsed
+            except Exception:
+                pass  # skip files that fail to parse
+    if st.session_state.documents:
+        st.session_state.doc_context = rebuild_context()
 
 
 def rebuild_context() -> str:
@@ -348,6 +369,13 @@ def call_ai_stream(user_msg: str, api_key: str, model: str):
         yield "No response generated. Please try again."
 
 # ─────────────────────────────────────────────────────────────────────────────
+# AUTO-LOAD documents from data/ directory on first run
+# ─────────────────────────────────────────────────────────────────────────────
+if not st.session_state.data_dir_loaded:
+    auto_load_data_dir()
+    st.session_state.data_dir_loaded = True
+
+# ─────────────────────────────────────────────────────────────────────────────
 # SIDEBAR
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -399,20 +427,25 @@ with st.sidebar:
         label_visibility="collapsed",
     )
 
-    # Auto-process uploaded files
+    # Auto-process uploaded files and save to data/ for persistence
     if uploaded:
         new_count = 0
         for f in uploaded:
             if f.name not in st.session_state.documents:
+                raw = f.read()
+                f.seek(0)  # reset for parse_file
                 parsed = parse_file(f)
                 if "error" not in parsed:
                     st.session_state.documents[f.name] = parsed
+                    # Save to data/ so it persists across redeployments
+                    DATA_DIR.mkdir(exist_ok=True)
+                    (DATA_DIR / f.name).write_bytes(raw)
                     new_count += 1
                 else:
                     st.error(f"✗ {f.name}: {parsed['error']}")
         if new_count > 0:
             st.session_state.doc_context = rebuild_context()
-            st.toast(f"✓ {new_count} document(s) loaded", icon="📄")
+            st.toast(f"✓ {new_count} document(s) loaded and saved", icon="📄")
 
     # Show loaded documents
     if st.session_state.documents:
@@ -425,9 +458,15 @@ with st.sidebar:
                 · {doc.get('word_count',0):,} words</span>
             </div>""", unsafe_allow_html=True)
         if st.button("🗑 Clear All Documents", use_container_width=True):
-            st.session_state.documents   = {}
-            st.session_state.doc_context = ""
-            st.session_state.messages    = []
+            # Remove files from data/ directory
+            for name in st.session_state.documents:
+                fpath = DATA_DIR / name
+                if fpath.exists():
+                    fpath.unlink()
+            st.session_state.documents      = {}
+            st.session_state.doc_context    = ""
+            st.session_state.messages       = []
+            st.session_state.data_dir_loaded = True  # don't re-load cleared files
             st.rerun()
     else:
         st.info("No documents loaded")
