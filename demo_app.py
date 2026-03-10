@@ -323,9 +323,17 @@ def call_ai_stream(user_msg: str, api_key: str, model: str):
         model=model, messages=msgs, temperature=0.1, max_tokens=2500,
         stream=True,
     )
+
+    first_token = True
     for chunk in stream:
         if chunk.choices and chunk.choices[0].delta.content:
+            if first_token:
+                first_token = False
             yield chunk.choices[0].delta.content
+
+    # If no tokens were yielded, yield a fallback message
+    if first_token:
+        yield "No response generated. Please try again."
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SIDEBAR
@@ -544,13 +552,29 @@ if user_input:
     with st.chat_message("user", avatar="👤"):
         st.markdown(user_input.strip())
 
-    # Stream AI response
+    # Stream AI response with visible status
     with st.chat_message("assistant", avatar="🤖"):
         t0 = time.time()
         try:
-            full_response = st.write_stream(
-                call_ai_stream(user_input.strip(), api_key, st.session_state.model)
-            )
+            with st.status(f"Connecting to {st.session_state.model}...", expanded=True) as status:
+                status.write(f"Sending query to OpenAI ({st.session_state.model})...")
+                status.write(f"Documents in context: {len(st.session_state.documents)}")
+                # Create the stream generator
+                stream_gen = call_ai_stream(user_input.strip(), api_key, st.session_state.model)
+                # Get the first chunk to confirm connection
+                first_chunk = next(stream_gen, None)
+                if first_chunk:
+                    status.update(label="Receiving response...", state="running")
+                    status.write("Streaming tokens from OpenAI...")
+
+            # Now stream the full response (first chunk + rest)
+            def full_stream():
+                if first_chunk:
+                    yield first_chunk
+                yield from stream_gen
+
+            full_response = st.write_stream(full_stream())
+
             elapsed = int((time.time() - t0) * 1000)
             qid = hashlib.sha256(f"{user_input}{time.time()}".encode()).hexdigest()[:12]
             meta = {
